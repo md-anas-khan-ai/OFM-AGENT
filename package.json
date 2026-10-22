@@ -1,0 +1,10 @@
+{
+  "name": "ofm-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Private chatter assistant: paste a subscriber message, get a ready to send reply.",
+  "engines": {
+    "node": ">=18"
+  }
+}
