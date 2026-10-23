@@ -4,8 +4,8 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { SYSTEM_PROMPT } from "../lib/systemPrompt.js";
-import { finalize } from "../lib/postprocess.js";
+import { getSystemPrompt } from "../lib/systemPrompt.js";
+import { finalize, optsFromMessages } from "../lib/postprocess.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const INDEX = path.join(__dirname, "..", "index.html");
@@ -15,7 +15,6 @@ const OLLAMA_URL = (process.env.OLLAMA_URL || "http://127.0.0.1:11434").replace(
 const MODEL = process.env.OLLAMA_MODEL || "llama3.1:8b";
 const MAX_MESSAGES = 20;
 const MAX_CHARS = 3000;
-const LOCAL_RULES = "\n\nIMPORTANT: reply only as the creator in 2 or 3 short lines. never write the subscribers message. never write the words subscriber or objective or context. give only one reply unless i say GIVE 3 OPTIONS.";
 
 function send(res, code, obj) {
   res.writeHead(code, { "content-type": "application/json" });
@@ -54,6 +53,7 @@ async function generate(req, res) {
   try { body = JSON.parse(await readBody(req)); } catch { return send(res, 400, { error: "bad request" }); }
   const messages = cleanMessages(body && body.messages);
   if (!messages) return send(res, 400, { error: "bad request: send a messages array ending with a user message" });
+  const mode = body.mode === "ppv" ? "ppv" : "chat";
 
   let r;
   try {
@@ -64,8 +64,13 @@ async function generate(req, res) {
         model: MODEL,
         stream: false,
         keep_alive: "30m",
-        messages: [{ role: "system", content: SYSTEM_PROMPT + LOCAL_RULES }, ...messages],
-        options: { temperature: 0.9, num_ctx: 4096, num_predict: 150, stop: ["SUBSCRIBER:", "Subscriber:", "subscriber:"] }
+        messages: [{ role: "system", content: getSystemPrompt(mode, { compact: true }) }, ...messages],
+        options: {
+          temperature: 0.9,
+          num_ctx: 6144,
+          num_predict: mode === "ppv" ? 260 : 170,
+          stop: ["SUBSCRIBER:", "Subscriber:", "subscriber:"]
+        }
       })
     });
   } catch {
@@ -80,7 +85,7 @@ async function generate(req, res) {
   }
   const text = data && data.message && typeof data.message.content === "string" ? data.message.content.trim() : "";
   if (!text) return send(res, 502, { error: "empty reply, try again" });
-  return send(res, 200, { reply: finalize(text) });
+  return send(res, 200, { reply: finalize(text, optsFromMessages(messages, mode)) });
 }
 
 const server = http.createServer(async (req, res) => {

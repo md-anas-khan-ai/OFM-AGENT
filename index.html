@@ -201,6 +201,33 @@
       .spacer {
         height: 6px;
       }
+      .modebar select {
+        font-weight: 600;
+      }
+      details summary {
+        cursor: pointer;
+        color: var(--muted);
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+      .hist-item {
+        border-top: 1px solid var(--line);
+        padding: 10px 0;
+      }
+      .hist-sub {
+        font-size: 14px;
+        color: var(--accent);
+        margin-bottom: 4px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .hist-reply {
+        font-size: 14px;
+        color: var(--muted);
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
     </style>
   </head>
   <body>
@@ -228,6 +255,16 @@
       </div>
 
       <div class="panel">
+        <div class="modebar">
+          <label for="mode">Mode</label>
+          <select id="mode">
+            <option value="chat">
+              Chat (opener, flirt, sexting, follow up)
+            </option>
+            <option value="ppv">PPV sales caption</option>
+          </select>
+        </div>
+
         <label for="sub">Subscriber message</label>
         <textarea id="sub" placeholder="paste what he sent"></textarea>
         <div class="hint" style="margin-top: 4px">
@@ -241,34 +278,29 @@
           </div>
           <div>
             <label for="obj">Objective</label>
-            <select id="obj">
-              <option value="">auto</option>
-              <option>continue</option>
-              <option>flirt</option>
-              <option>sexting</option>
-              <option>introduce ppv</option>
-              <option>respond to objection</option>
-              <option>follow up</option>
-            </select>
+            <select id="obj"></select>
           </div>
         </div>
 
-        <div class="row3">
-          <div style="grid-column: span 2">
-            <label for="content">PPV content (only what is real)</label>
-            <input
-              id="content"
-              placeholder="e.g. boobs pressing video, 3 min"
-            />
+        <div id="ppvFields" style="display: none">
+          <div class="row3">
+            <div style="grid-column: span 2">
+              <label for="content">PPV content (only what is real)</label>
+              <input
+                id="content"
+                placeholder="e.g. boobs pressing video, 3 min"
+              />
+            </div>
+            <div>
+              <label for="price">Price</label>
+              <input id="price" placeholder="e.g. $15" />
+            </div>
           </div>
-          <div>
-            <label for="price">Price</label>
-            <input id="price" placeholder="e.g. $15" />
+          <div class="hint" style="margin-top: 6px">
+            Leave content and price empty if you dont have them. The assistant
+            will not make them up. You can also leave the subscriber message
+            empty to continue the scene.
           </div>
-        </div>
-        <div class="hint" style="margin-top: 6px">
-          Leave content and price empty if you dont have them. The assistant
-          will not make them up.
         </div>
 
         <button class="primary" id="go">Get reply</button>
@@ -283,6 +315,7 @@
           <button data-cmd="MORE FLIRTY">more flirty</button>
           <button data-cmd="MORE CASUAL">more casual</button>
           <button data-cmd="LESS SALESY">less salesy</button>
+          <button data-cmd="MORE DOMINANT">more dominant</button>
         </div>
       </div>
 
@@ -294,16 +327,48 @@
         <div id="out"></div>
         <div class="hint">
           Tap a line to copy it. Each line is meant to go out as its own
-          message.
+          message. You review and send every message yourself.
         </div>
         <div class="err" id="err"></div>
+      </div>
+
+      <div class="panel" id="histBox" style="display: none">
+        <details>
+          <summary>Chat history (<span id="histCount">0</span>)</summary>
+          <div id="histList"></div>
+        </details>
       </div>
     </div>
 
     <script>
       (function () {
+        var STATE_KEY = "ofm_state_v2";
         var messages = [];
+        var thread = [];
+        var lastReply = "";
         var busy = false;
+
+        var OBJECTIVES = {
+          chat: [
+            ["", "auto"],
+            ["opener", "opener"],
+            ["continue", "continue"],
+            ["flirt", "flirt"],
+            ["sexting", "sexting"],
+            ["dominant", "dominant"],
+            ["buildup", "buildup"],
+            ["story scene", "story scene"],
+            ["follow up", "follow up (quiet sub)"],
+            ["respond to objection", "respond to objection"],
+          ],
+          ppv: [
+            ["", "auto"],
+            ["caption", "caption"],
+            ["tease before ppv", "tease before ppv"],
+            ["respond to objection", "respond to objection"],
+            ["follow up", "follow up"],
+          ],
+        };
 
         var $ = function (id) {
           return document.getElementById(id);
@@ -321,6 +386,53 @@
             return "";
           }
         }
+        function drop(key) {
+          try {
+            localStorage.removeItem(key);
+          } catch (e) {}
+        }
+
+        function currentMode() {
+          return $("mode").value === "ppv" ? "ppv" : "chat";
+        }
+
+        function saveState() {
+          store(
+            STATE_KEY,
+            JSON.stringify({
+              messages: messages,
+              thread: thread,
+              lastReply: lastReply,
+              mode: currentMode(),
+            }),
+          );
+        }
+
+        function fillObjectives() {
+          var sel = $("obj");
+          var keep = sel.value;
+          sel.innerHTML = "";
+          OBJECTIVES[currentMode()].forEach(function (o) {
+            var opt = document.createElement("option");
+            opt.value = o[0];
+            opt.textContent = o[1];
+            sel.appendChild(opt);
+          });
+          sel.value = keep;
+          if (sel.value !== keep) sel.value = "";
+        }
+
+        function applyMode() {
+          fillObjectives();
+          var ppv = currentMode() === "ppv";
+          $("ppvFields").style.display = ppv ? "block" : "none";
+          $("go").textContent = ppv ? "Get PPV caption" : "Get reply";
+        }
+
+        $("mode").onchange = function () {
+          applyMode();
+          saveState();
+        };
 
         $("pw").value = load("ofm_pw");
 
@@ -335,27 +447,40 @@
 
         $("newBtn").onclick = function () {
           messages = [];
+          thread = [];
+          lastReply = "";
+          drop(STATE_KEY);
           $("sub").value = "";
           $("ctx").value = "";
           $("obj").value = "";
+          $("content").value = "";
+          $("price").value = "";
           $("out").innerHTML = "";
           $("err").textContent = "";
           $("outPanel").style.display = "none";
+          renderHistory();
           $("sub").focus();
         };
 
         function buildSubText() {
+          var ppv = currentMode() === "ppv";
           var sub = $("sub").value.trim();
-          if (!sub) return "";
+          if (!sub) {
+            if (!ppv) return "";
+            sub =
+              "(no new message, write the caption that continues the scene)";
+          }
           var parts = ["SUBSCRIBER: " + sub];
           var ctx = $("ctx").value.trim();
           var obj = $("obj").value.trim();
-          var content = $("content").value.trim();
-          var price = $("price").value.trim();
           if (ctx) parts.push("CONTEXT: " + ctx);
           if (obj) parts.push("OBJECTIVE: " + obj);
-          if (content) parts.push("CONTENT: " + content);
-          if (price) parts.push("PRICE: " + price);
+          if (ppv) {
+            var content = $("content").value.trim();
+            var price = $("price").value.trim();
+            if (content) parts.push("CONTENT: " + content);
+            if (price) parts.push("PRICE: " + price);
+          }
           return parts.join(" / ");
         }
 
@@ -395,6 +520,26 @@
             });
             if (group.childNodes.length) out.appendChild(group);
           });
+        }
+
+        function renderHistory() {
+          var list = $("histList");
+          list.innerHTML = "";
+          thread.forEach(function (t) {
+            var item = document.createElement("div");
+            item.className = "hist-item";
+            var s = document.createElement("div");
+            s.className = "hist-sub";
+            s.textContent = (t.mode === "ppv" ? "[ppv] " : "") + t.sub;
+            var r = document.createElement("div");
+            r.className = "hist-reply";
+            r.textContent = t.reply;
+            item.appendChild(s);
+            item.appendChild(r);
+            list.appendChild(item);
+          });
+          $("histCount").textContent = String(thread.length);
+          $("histBox").style.display = thread.length ? "block" : "none";
         }
 
         function replyLinesOnly(text) {
@@ -440,13 +585,13 @@
           document.body.removeChild(ta);
         }
 
-        var lastReply = "";
         $("copyAll").onclick = function () {
           if (lastReply) copy(replyLinesOnly(lastReply), $("copyAll"));
         };
 
-        function send(userText) {
+        function send(userText, display) {
           if (busy) return;
+          var mode = currentMode();
           $("err").textContent = "";
           $("outPanel").style.display = "block";
           messages.push({ role: "user", content: userText });
@@ -459,7 +604,7 @@
           fetch("/api/generate", {
             method: "POST",
             headers: headers,
-            body: JSON.stringify({ messages: messages }),
+            body: JSON.stringify({ mode: mode, messages: messages }),
           })
             .then(function (r) {
               return r
@@ -483,8 +628,11 @@
                 return;
               }
               messages.push({ role: "assistant", content: res.d.reply });
+              thread.push({ mode: mode, sub: display, reply: res.d.reply });
               lastReply = res.d.reply;
               render(res.d.reply);
+              renderHistory();
+              saveState();
               if (userText.indexOf("SUBSCRIBER:") === 0) $("sub").value = "";
             })
             .catch(function () {
@@ -502,7 +650,8 @@
             $("sub").focus();
             return;
           }
-          send(text);
+          var display = $("sub").value.trim() || "(continue the scene)";
+          send(text, display);
         };
 
         // Enter sends, Shift+Enter makes a new line
@@ -523,13 +672,34 @@
             e.target.getAttribute("data-cmd");
           if (!cmd) return;
           if (!messages.length) {
-            $("err").textContent = "";
             $("outPanel").style.display = "block";
             $("err").textContent = "get a reply first, then revise it";
             return;
           }
-          send(cmd);
+          send(cmd, "revise: " + cmd);
         });
+
+        // restore the conversation after a refresh
+        (function restore() {
+          var raw = load(STATE_KEY);
+          if (raw) {
+            try {
+              var s = JSON.parse(raw);
+              if (s && Array.isArray(s.messages) && Array.isArray(s.thread)) {
+                messages = s.messages;
+                thread = s.thread;
+                lastReply = typeof s.lastReply === "string" ? s.lastReply : "";
+                if (s.mode === "ppv") $("mode").value = "ppv";
+              }
+            } catch (e) {}
+          }
+          applyMode();
+          renderHistory();
+          if (lastReply) {
+            $("outPanel").style.display = "block";
+            render(lastReply);
+          }
+        })();
       })();
     </script>
   </body>
