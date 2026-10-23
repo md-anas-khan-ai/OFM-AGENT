@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "description": "Private chatter assistant: paste a subscriber message, get a ready to send reply.",
+  "scripts": {
+    "local": "node local/server.js"
+  },
   "engines": {
     "node": ">=18"
   }
