@@ -15,6 +15,7 @@ const OLLAMA_URL = (process.env.OLLAMA_URL || "http://127.0.0.1:11434").replace(
 const MODEL = process.env.OLLAMA_MODEL || "llama3.1:8b";
 const MAX_MESSAGES = 20;
 const MAX_CHARS = 3000;
+const LOCAL_RULES = "\n\nIMPORTANT: reply only as the creator in 2 or 3 short lines. never write the subscribers message. never write the words subscriber or objective or context. give only one reply unless i say GIVE 3 OPTIONS.";
 
 function send(res, code, obj) {
   res.writeHead(code, { "content-type": "application/json" });
@@ -62,8 +63,9 @@ async function generate(req, res) {
       body: JSON.stringify({
         model: MODEL,
         stream: false,
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
-        options: { temperature: 0.9, num_ctx: 8192 }
+        keep_alive: "30m",
+        messages: [{ role: "system", content: SYSTEM_PROMPT + LOCAL_RULES }, ...messages],
+        options: { temperature: 0.9, num_ctx: 4096, num_predict: 150, stop: ["SUBSCRIBER:", "Subscriber:", "subscriber:"] }
       })
     });
   } catch {

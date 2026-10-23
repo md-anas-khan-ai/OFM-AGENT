@@ -1,316 +1,536 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow">
-<title>Chatter Desk</title>
-<style>
-  :root {
-    --bg: #0f0d14;
-    --panel: #181520;
-    --line: #2b2636;
-    --text: #efeaf7;
-    --muted: #9a92ab;
-    --accent: #e0457b;
-    --accent-2: #b5336a;
-    --bubble: #26202f;
-    --note: #3a2f1c;
-    --note-text: #f0c987;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
-  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
-  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; text-transform: uppercase; letter-spacing: .6px; }
-  label:first-child { margin-top: 0; }
-  textarea, input, select {
-    width: 100%; background: #110e17; color: var(--text); border: 1px solid var(--line);
-    border-radius: 10px; padding: 10px 12px; font: inherit;
-  }
-  textarea { resize: vertical; min-height: 84px; }
-  textarea:focus, input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
-  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .row3 { display: grid; grid-template-columns: 1.2fr 1.6fr .8fr; gap: 10px; }
-  @media (max-width: 560px) { .row, .row3 { grid-template-columns: 1fr; } }
-  button {
-    font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--line);
-    background: #211c2b; color: var(--text); padding: 9px 12px;
-  }
-  button:hover { border-color: #4a4160; }
-  button:disabled { opacity: .5; cursor: default; }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; width: 100%; padding: 12px; margin-top: 12px; }
-  button.primary:hover { background: var(--accent-2); }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chips button { padding: 7px 11px; font-size: 14px; }
-  .out-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .out-head span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
-  .group { margin-bottom: 14px; }
-  .bubble {
-    display: block; width: 100%; text-align: left; background: var(--bubble); border: 1px solid transparent;
-    border-radius: 14px; padding: 10px 14px; margin-bottom: 6px; white-space: pre-wrap; word-break: break-word;
-  }
-  .bubble:hover { border-color: #4a4160; }
-  .bubble.copied { border-color: var(--accent); }
-  .note { background: var(--note); color: var(--note-text); border-radius: 10px; padding: 8px 12px; font-size: 14px; margin-bottom: 6px; }
-  .hint { color: var(--muted); font-size: 13px; }
-  .err { color: #ff8aa8; font-size: 14px; }
-  .small { padding: 6px 10px; font-size: 13px; }
-  #pwRow { display: none; }
-  .spacer { height: 6px; }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <header>
-    <h1>Chatter Desk</h1>
-    <div style="display:flex;gap:8px">
-      <button id="pwBtn" class="small" title="Set the shared password">password</button>
-      <button id="newBtn" class="small">new sub</button>
-    </div>
-  </header>
-
-  <div class="panel" id="pwRow">
-    <label for="pw">Shared password</label>
-    <input id="pw" type="password" autocomplete="off" placeholder="the APP_PASSWORD you set on the server">
-    <div class="spacer"></div>
-    <button id="pwSave" class="small">save</button>
-  </div>
-
-  <div class="panel">
-    <label for="sub">Subscriber message</label>
-    <textarea id="sub" placeholder="paste what he sent"></textarea>
-
-    <div class="row">
-      <div>
-        <label for="ctx">Context (optional)</label>
-        <input id="ctx" placeholder="e.g. new sub, went quiet 2 days">
-      </div>
-      <div>
-        <label for="obj">Objective</label>
-        <select id="obj">
-          <option value="">auto</option>
-          <option>continue</option>
-          <option>flirt</option>
-          <option>sexting</option>
-          <option>introduce ppv</option>
-          <option>respond to objection</option>
-          <option>follow up</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="row3">
-      <div style="grid-column: span 2">
-        <label for="content">PPV content (only what is real)</label>
-        <input id="content" placeholder="e.g. boobs pressing video, 3 min">
-      </div>
-      <div>
-        <label for="price">Price</label>
-        <input id="price" placeholder="e.g. $15">
-      </div>
-    </div>
-    <div class="hint" style="margin-top:6px">Leave content and price empty if you dont have them. The assistant will not make them up.</div>
-
-    <button class="primary" id="go">Get reply</button>
-  </div>
-
-  <div class="panel">
-    <div class="out-head"><span>Revise</span></div>
-    <div class="chips" id="chips">
-      <button data-cmd="GIVE 3 OPTIONS">3 options</button>
-      <button data-cmd="WHY">why</button>
-      <button data-cmd="SHORTER">shorter</button>
-      <button data-cmd="MORE FLIRTY">more flirty</button>
-      <button data-cmd="MORE CASUAL">more casual</button>
-      <button data-cmd="LESS SALESY">less salesy</button>
-    </div>
-  </div>
-
-  <div class="panel" id="outPanel" style="display:none">
-    <div class="out-head">
-      <span id="status">reply</span>
-      <button class="small" id="copyAll">copy all</button>
-    </div>
-    <div id="out"></div>
-    <div class="hint">Tap a line to copy it. Each line is meant to go out as its own message.</div>
-    <div class="err" id="err"></div>
-  </div>
-</div>
-
-<script>
-(function () {
-  var messages = [];
-  var busy = false;
-
-  var $ = function (id) { return document.getElementById(id); };
-
-  function store(key, val) { try { localStorage.setItem(key, val); } catch (e) {} }
-  function load(key) { try { return localStorage.getItem(key) || ""; } catch (e) { return ""; } }
-
-  $("pw").value = load("ofm_pw");
-
-  $("pwBtn").onclick = function () {
-    var row = $("pwRow");
-    row.style.display = row.style.display === "block" ? "none" : "block";
-  };
-  $("pwSave").onclick = function () {
-    store("ofm_pw", $("pw").value);
-    $("pwRow").style.display = "none";
-  };
-
-  $("newBtn").onclick = function () {
-    messages = [];
-    $("sub").value = "";
-    $("ctx").value = "";
-    $("obj").value = "";
-    $("out").innerHTML = "";
-    $("err").textContent = "";
-    $("outPanel").style.display = "none";
-    $("sub").focus();
-  };
-
-  function buildSubText() {
-    var sub = $("sub").value.trim();
-    if (!sub) return "";
-    var parts = ["SUBSCRIBER: " + sub];
-    var ctx = $("ctx").value.trim();
-    var obj = $("obj").value.trim();
-    var content = $("content").value.trim();
-    var price = $("price").value.trim();
-    if (ctx) parts.push("CONTEXT: " + ctx);
-    if (obj) parts.push("OBJECTIVE: " + obj);
-    if (content) parts.push("CONTENT: " + content);
-    if (price) parts.push("PRICE: " + price);
-    return parts.join(" / ");
-  }
-
-  function setBusy(on) {
-    busy = on;
-    $("go").disabled = on;
-    var btns = $("chips").querySelectorAll("button");
-    for (var i = 0; i < btns.length; i++) btns[i].disabled = on;
-    $("status").textContent = on ? "writing..." : "reply";
-  }
-
-  function render(text) {
-    var out = $("out");
-    out.innerHTML = "";
-    var blocks = text.split(/\n\s*\n/);
-    blocks.forEach(function (block) {
-      var group = document.createElement("div");
-      group.className = "group";
-      block.split("\n").forEach(function (line) {
-        var t = line.trim();
-        if (!t) return;
-        if (/^note:/i.test(t)) {
-          var n = document.createElement("div");
-          n.className = "note";
-          n.textContent = t;
-          group.appendChild(n);
-          return;
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Chatter Desk</title>
+    <style>
+      :root {
+        --bg: #0f0d14;
+        --panel: #181520;
+        --line: #2b2636;
+        --text: #efeaf7;
+        --muted: #9a92ab;
+        --accent: #e0457b;
+        --accent-2: #b5336a;
+        --bubble: #26202f;
+        --note: #3a2f1c;
+        --note-text: #f0c987;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          16px/1.45 system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0;
+        letter-spacing: 0.3px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px;
+        margin-bottom: 14px;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin: 10px 0 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+      label:first-child {
+        margin-top: 0;
+      }
+      textarea,
+      input,
+      select {
+        width: 100%;
+        background: #110e17;
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font: inherit;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 84px;
+      }
+      textarea:focus,
+      input:focus,
+      select:focus {
+        outline: 2px solid var(--accent);
+        outline-offset: 0;
+        border-color: transparent;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .row3 {
+        display: grid;
+        grid-template-columns: 1.2fr 1.6fr 0.8fr;
+        gap: 10px;
+      }
+      @media (max-width: 560px) {
+        .row,
+        .row3 {
+          grid-template-columns: 1fr;
         }
-        var b = document.createElement("button");
-        b.type = "button";
-        b.className = "bubble";
-        b.textContent = t;
-        b.onclick = function () { copy(t, b); };
-        group.appendChild(b);
-      });
-      if (group.childNodes.length) out.appendChild(group);
-    });
-  }
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: #211c2b;
+        color: var(--text);
+        padding: 9px 12px;
+      }
+      button:hover {
+        border-color: #4a4160;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+        font-weight: 600;
+        width: 100%;
+        padding: 12px;
+        margin-top: 12px;
+      }
+      button.primary:hover {
+        background: var(--accent-2);
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chips button {
+        padding: 7px 11px;
+        font-size: 14px;
+      }
+      .out-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .out-head span {
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+      .group {
+        margin-bottom: 14px;
+      }
+      .bubble {
+        display: block;
+        width: 100%;
+        text-align: left;
+        background: var(--bubble);
+        border: 1px solid transparent;
+        border-radius: 14px;
+        padding: 10px 14px;
+        margin-bottom: 6px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .bubble:hover {
+        border-color: #4a4160;
+      }
+      .bubble.copied {
+        border-color: var(--accent);
+      }
+      .note {
+        background: var(--note);
+        color: var(--note-text);
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: 14px;
+        margin-bottom: 6px;
+      }
+      .hint {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .err {
+        color: #ff8aa8;
+        font-size: 14px;
+      }
+      .small {
+        padding: 6px 10px;
+        font-size: 13px;
+      }
+      #pwRow {
+        display: none;
+      }
+      .spacer {
+        height: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Chatter Desk</h1>
+        <div style="display: flex; gap: 8px">
+          <button id="pwBtn" class="small" title="Set the shared password">
+            password
+          </button>
+          <button id="newBtn" class="small">new sub</button>
+        </div>
+      </header>
 
-  function replyLinesOnly(text) {
-    return text.split("\n").map(function (l) { return l.trim(); })
-      .filter(function (l) { return l && !/^note:/i.test(l); }).join("\n");
-  }
+      <div class="panel" id="pwRow">
+        <label for="pw">Shared password</label>
+        <input
+          id="pw"
+          type="password"
+          autocomplete="off"
+          placeholder="the APP_PASSWORD you set on the server"
+        />
+        <div class="spacer"></div>
+        <button id="pwSave" class="small">save</button>
+      </div>
 
-  function copy(text, el) {
-    function done() {
-      if (!el) return;
-      el.classList.add("copied");
-      setTimeout(function () { el.classList.remove("copied"); }, 700);
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
-    } else {
-      fallbackCopy(text);
-      done();
-    }
-  }
-  function fallbackCopy(text) {
-    var ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand("copy"); } catch (e) {}
-    document.body.removeChild(ta);
-  }
+      <div class="panel">
+        <label for="sub">Subscriber message</label>
+        <textarea id="sub" placeholder="paste what he sent"></textarea>
+        <div class="hint" style="margin-top: 4px">
+          Enter = get reply, Shift+Enter = new line
+        </div>
 
-  var lastReply = "";
-  $("copyAll").onclick = function () { if (lastReply) copy(replyLinesOnly(lastReply), $("copyAll")); };
+        <div class="row">
+          <div>
+            <label for="ctx">Context (optional)</label>
+            <input id="ctx" placeholder="e.g. new sub, went quiet 2 days" />
+          </div>
+          <div>
+            <label for="obj">Objective</label>
+            <select id="obj">
+              <option value="">auto</option>
+              <option>continue</option>
+              <option>flirt</option>
+              <option>sexting</option>
+              <option>introduce ppv</option>
+              <option>respond to objection</option>
+              <option>follow up</option>
+            </select>
+          </div>
+        </div>
 
-  function send(userText) {
-    if (busy) return;
-    $("err").textContent = "";
-    $("outPanel").style.display = "block";
-    messages.push({ role: "user", content: userText });
-    setBusy(true);
+        <div class="row3">
+          <div style="grid-column: span 2">
+            <label for="content">PPV content (only what is real)</label>
+            <input
+              id="content"
+              placeholder="e.g. boobs pressing video, 3 min"
+            />
+          </div>
+          <div>
+            <label for="price">Price</label>
+            <input id="price" placeholder="e.g. $15" />
+          </div>
+        </div>
+        <div class="hint" style="margin-top: 6px">
+          Leave content and price empty if you dont have them. The assistant
+          will not make them up.
+        </div>
 
-    var headers = { "content-type": "application/json" };
-    var pw = load("ofm_pw");
-    if (pw) headers["x-app-password"] = pw;
+        <button class="primary" id="go">Get reply</button>
+      </div>
 
-    fetch("/api/generate", {
-      method: "POST",
-      headers: headers,
-      body: JSON.stringify({ messages: messages })
-    })
-      .then(function (r) {
-        return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, d: d }; });
-      })
-      .then(function (res) {
-        if (!res.ok || !res.d.reply) {
-          messages.pop();
-          var msg = (res.d && res.d.error) || ("request failed (" + res.status + ")");
-          if (res.status === 401) msg += ". tap password at the top and enter it";
-          $("err").textContent = msg;
-          return;
+      <div class="panel">
+        <div class="out-head"><span>Revise</span></div>
+        <div class="chips" id="chips">
+          <button data-cmd="GIVE 3 OPTIONS">3 options</button>
+          <button data-cmd="WHY">why</button>
+          <button data-cmd="SHORTER">shorter</button>
+          <button data-cmd="MORE FLIRTY">more flirty</button>
+          <button data-cmd="MORE CASUAL">more casual</button>
+          <button data-cmd="LESS SALESY">less salesy</button>
+        </div>
+      </div>
+
+      <div class="panel" id="outPanel" style="display: none">
+        <div class="out-head">
+          <span id="status">reply</span>
+          <button class="small" id="copyAll">copy all</button>
+        </div>
+        <div id="out"></div>
+        <div class="hint">
+          Tap a line to copy it. Each line is meant to go out as its own
+          message.
+        </div>
+        <div class="err" id="err"></div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        var messages = [];
+        var busy = false;
+
+        var $ = function (id) {
+          return document.getElementById(id);
+        };
+
+        function store(key, val) {
+          try {
+            localStorage.setItem(key, val);
+          } catch (e) {}
         }
-        messages.push({ role: "assistant", content: res.d.reply });
-        lastReply = res.d.reply;
-        render(res.d.reply);
-        if (userText.indexOf("SUBSCRIBER:") === 0) $("sub").value = "";
-      })
-      .catch(function () {
-        messages.pop();
-        $("err").textContent = "network problem, try again";
-      })
-      .then(function () { setBusy(false); });
-  }
+        function load(key) {
+          try {
+            return localStorage.getItem(key) || "";
+          } catch (e) {
+            return "";
+          }
+        }
 
-  $("go").onclick = function () {
-    var text = buildSubText();
-    if (!text) { $("sub").focus(); return; }
-    send(text);
-  };
+        $("pw").value = load("ofm_pw");
 
-  $("sub").addEventListener("keydown", function (e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") $("go").click();
-  });
+        $("pwBtn").onclick = function () {
+          var row = $("pwRow");
+          row.style.display = row.style.display === "block" ? "none" : "block";
+        };
+        $("pwSave").onclick = function () {
+          store("ofm_pw", $("pw").value);
+          $("pwRow").style.display = "none";
+        };
 
-  $("chips").addEventListener("click", function (e) {
-    var cmd = e.target && e.target.getAttribute && e.target.getAttribute("data-cmd");
-    if (!cmd) return;
-    if (!messages.length) { $("err").textContent = ""; $("outPanel").style.display = "block"; $("err").textContent = "get a reply first, then revise it"; return; }
-    send(cmd);
-  });
-})();
-</script>
-</body>
+        $("newBtn").onclick = function () {
+          messages = [];
+          $("sub").value = "";
+          $("ctx").value = "";
+          $("obj").value = "";
+          $("out").innerHTML = "";
+          $("err").textContent = "";
+          $("outPanel").style.display = "none";
+          $("sub").focus();
+        };
+
+        function buildSubText() {
+          var sub = $("sub").value.trim();
+          if (!sub) return "";
+          var parts = ["SUBSCRIBER: " + sub];
+          var ctx = $("ctx").value.trim();
+          var obj = $("obj").value.trim();
+          var content = $("content").value.trim();
+          var price = $("price").value.trim();
+          if (ctx) parts.push("CONTEXT: " + ctx);
+          if (obj) parts.push("OBJECTIVE: " + obj);
+          if (content) parts.push("CONTENT: " + content);
+          if (price) parts.push("PRICE: " + price);
+          return parts.join(" / ");
+        }
+
+        function setBusy(on) {
+          busy = on;
+          $("go").disabled = on;
+          var btns = $("chips").querySelectorAll("button");
+          for (var i = 0; i < btns.length; i++) btns[i].disabled = on;
+          $("status").textContent = on ? "writing..." : "reply";
+        }
+
+        function render(text) {
+          var out = $("out");
+          out.innerHTML = "";
+          var blocks = text.split(/\n\s*\n/);
+          blocks.forEach(function (block) {
+            var group = document.createElement("div");
+            group.className = "group";
+            block.split("\n").forEach(function (line) {
+              var t = line.trim();
+              if (!t) return;
+              if (/^note:/i.test(t)) {
+                var n = document.createElement("div");
+                n.className = "note";
+                n.textContent = t;
+                group.appendChild(n);
+                return;
+              }
+              var b = document.createElement("button");
+              b.type = "button";
+              b.className = "bubble";
+              b.textContent = t;
+              b.onclick = function () {
+                copy(t, b);
+              };
+              group.appendChild(b);
+            });
+            if (group.childNodes.length) out.appendChild(group);
+          });
+        }
+
+        function replyLinesOnly(text) {
+          return text
+            .split("\n")
+            .map(function (l) {
+              return l.trim();
+            })
+            .filter(function (l) {
+              return l && !/^note:/i.test(l);
+            })
+            .join("\n");
+        }
+
+        function copy(text, el) {
+          function done() {
+            if (!el) return;
+            el.classList.add("copied");
+            setTimeout(function () {
+              el.classList.remove("copied");
+            }, 700);
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () {
+              fallbackCopy(text);
+              done();
+            });
+          } else {
+            fallbackCopy(text);
+            done();
+          }
+        }
+        function fallbackCopy(text) {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand("copy");
+          } catch (e) {}
+          document.body.removeChild(ta);
+        }
+
+        var lastReply = "";
+        $("copyAll").onclick = function () {
+          if (lastReply) copy(replyLinesOnly(lastReply), $("copyAll"));
+        };
+
+        function send(userText) {
+          if (busy) return;
+          $("err").textContent = "";
+          $("outPanel").style.display = "block";
+          messages.push({ role: "user", content: userText });
+          setBusy(true);
+
+          var headers = { "content-type": "application/json" };
+          var pw = load("ofm_pw");
+          if (pw) headers["x-app-password"] = pw;
+
+          fetch("/api/generate", {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify({ messages: messages }),
+          })
+            .then(function (r) {
+              return r
+                .json()
+                .catch(function () {
+                  return {};
+                })
+                .then(function (d) {
+                  return { ok: r.ok, status: r.status, d: d };
+                });
+            })
+            .then(function (res) {
+              if (!res.ok || !res.d.reply) {
+                messages.pop();
+                var msg =
+                  (res.d && res.d.error) ||
+                  "request failed (" + res.status + ")";
+                if (res.status === 401)
+                  msg += ". tap password at the top and enter it";
+                $("err").textContent = msg;
+                return;
+              }
+              messages.push({ role: "assistant", content: res.d.reply });
+              lastReply = res.d.reply;
+              render(res.d.reply);
+              if (userText.indexOf("SUBSCRIBER:") === 0) $("sub").value = "";
+            })
+            .catch(function () {
+              messages.pop();
+              $("err").textContent = "network problem, try again";
+            })
+            .then(function () {
+              setBusy(false);
+            });
+        }
+
+        $("go").onclick = function () {
+          var text = buildSubText();
+          if (!text) {
+            $("sub").focus();
+            return;
+          }
+          send(text);
+        };
+
+        // Enter sends, Shift+Enter makes a new line
+        function enterToSend(e) {
+          if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+            e.preventDefault();
+            $("go").click();
+          }
+        }
+        ["sub", "ctx", "content", "price"].forEach(function (id) {
+          $(id).addEventListener("keydown", enterToSend);
+        });
+
+        $("chips").addEventListener("click", function (e) {
+          var cmd =
+            e.target &&
+            e.target.getAttribute &&
+            e.target.getAttribute("data-cmd");
+          if (!cmd) return;
+          if (!messages.length) {
+            $("err").textContent = "";
+            $("outPanel").style.display = "block";
+            $("err").textContent = "get a reply first, then revise it";
+            return;
+          }
+          send(cmd);
+        });
+      })();
+    </script>
+  </body>
 </html>
